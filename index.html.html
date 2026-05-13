@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบเช็คสต็อกร้านน้ำใจ</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    body { box-sizing: border-box; }
+    * { font-family: 'Sarabun', sans-serif; }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .lang-btn{
+      width:36px;
+      height:36px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
+      font-size:12px;
+      font-weight:500;
+      cursor:pointer;
+      transition:all 0.2s;
+      border:2px solid transparent;
+    }
+
+    .lang-btn.active{
+      background-color:#ea580c;
+      color:white;
+      border-color:#ea580c;
+    }
+
+    .lang-btn:not(.active){
+      background-color:white;
+      color:#ea580c;
+      border-color:#f3f4f6;
+    }
+
+    .lang-selector{
+      display:flex;
+      gap:4px;
+      padding:6px;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body class="h-full bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+
+<div id="app" class="h-full w-full overflow-auto">
+
+  <div class="fixed top-4 right-4 z-50 lang-selector">
+    <button onclick="setLanguage('th')" class="lang-btn active" id="btn-th">ไทย</button>
+    <button onclick="setLanguage('lo')" class="lang-btn" id="btn-lo">ລາວ</button>
+    <button onclick="setLanguage('my')" class="lang-btn" id="btn-my">မြန်</button>
+  </div>
+
+  <div class="min-h-full p-4 md:p-6 pt-20">
+
+    <div class="max-w-5xl mx-auto">
+
+      <div class="mb-8">
+        <h1 id="shop-title" class="text-3xl md:text-4xl font-bold text-orange-800">
+          🍻 ร้านน้ำใจ
+        </h1>
+
+        <p id="daily-check" class="text-orange-600 mt-2">
+          เช็คสต็อกประจำวัน
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="category-container"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+let currentLanguage = 'th';
+
+const translations = {
+
+  th: {
+    title: 'ร้านน้ำใจ',
+    daily: 'เช็คสต็อกประจำวัน',
+
+    alcohol: 'เครื่องดื่มแอลกอฮอล์',
+    nonAlcohol: 'เครื่องดื่มไม่มีแอลกอฮอล์',
+    other: 'อื่นๆ',
+
+    quantity: 'จำนวน',
+    unit: 'หน่วย',
+    note: 'หมายเหตุ',
+
+    bottle: 'ขวด',
+    crate: 'ลัง',
+    pack: 'แพ็ค',
+    can: 'กระป๋อง',
+    bag: 'ห่อ'
+  },
+
+  lo: {
+    title: 'ຮ້ານນ້ຳໃຈ',
+    daily: 'ກວດສະຕ໋ອກປະຈຳວັນ',
+
+    alcohol: 'ເຄື່ອງດື່ມແອລກໍຮໍ',
+    nonAlcohol: 'ເຄື່ອງດື່ມບໍ່ມີແອລກໍຮໍ',
+    other: 'ອື່ນໆ',
+
+    quantity: 'ຈຳນວນ',
+    unit: 'ໜ່ວຍ',
+    note: 'ໝາຍເຫດ',
+
+    bottle: 'ຂວດ',
+    crate: 'ລັງ',
+    pack: 'ແພັກ',
+    can: 'ກະປ໋ອງ',
+    bag: 'ຫໍ່'
+  },
+
+  my: {
+    title: 'ရေနံ့သာဆိုင်',
+    daily: 'နေ့စဉ်စတော့စစ်ခြင်း',
+
+    alcohol: 'အရက်ပါဝင်သောအဖျော်ယမကာ',
+    nonAlcohol: 'အရက်မပါသောအဖျော်ယမကာ',
+    other: 'အခြား',
+
+    quantity: 'အရေအတွက်',
+    unit: 'ယူနစ်',
+    note: 'မှတ်ချက်',
+
+    bottle: 'ပုလင်း',
+    crate: 'သေတ္တာ',
+    pack: 'ပက်',
+    can: 'ဗူး',
+    bag: 'ထုပ်'
+  }
+};
+
+const stockItems = [
+
+  {
+    categoryKey: 'alcohol',
+    icon: '🍺',
+    color: 'from-red-500 to-orange-500',
+
+    items: [
+
+      ['สิงห์','ขวด/ลัง'],
+      ['รีเสิร์ฟ','ขวด/ลัง'],
+      ['โรเซ่','ขวด/ลัง'],
+      ['ช้าง','ขวด/ลัง'],
+      ['โคลบลู','ขวด/ลัง'],
+      ['รีแบน','ขวด/ลัง'],
+      ['รีกลม','ขวด/ลัง'],
+      ['แสงโสม','ขวด/ลัง'],
+      ['อาซาฮีเล็ก','ขวด/ลัง'],
+      ['โซจู','ขวด/ลัง'],
+      ['brothers','ขวด/ลัง'],
+      ['หงส์ป๋อง','กระป๋อง/ลัง'],
+      ['โคโลน่า','ขวด/ลัง'],
+      ['บัดไวเซอร์','ขวด/ลัง'],
+      ['เฟดเตอร์บอย','ขวด/ลัง'],
+      ['ชิวเวอร์วูฟ','ขวด/ลัง'],
+      ['บ๋วย','ขวด/ลัง'],
+      ['แสงแบน','ขวด/ลัง'],
+      ['ซาโต้','กระป๋อง/ลัง'],
+      ['เมอร์','ขวด/ลัง']
+
+    ]
+  },
+
+  {
+    categoryKey: 'nonAlcohol',
+    icon: '🥤',
+    color: 'from-cyan-500 to-blue-500',
+
+    items: [
+
+      ['น้ำเล็ก','ขวด/แพ็ค'],
+      ['น้ำใหญ่','ขวด/แพ็ค'],
+      ['โซดา','ขวด/แพ็ค'],
+      ['สิงห์เลม่อน','กระป๋อง/แพ็ค'],
+      ['โค้กเล็ก','ขวด/แพ็ค'],
+      ['โค้กใหญ่','ขวด/แพ็ค'],
+      ['สไปร์สเล็ก','ขวด/แพ็ค'],
+      ['สไปร์สใหญ่','ขวด/แพ็ค'],
+      ['น้ำส้มสแปรช','ขวด/แพ็ค'],
+      ['ชเวฟ','กระป๋อง/แพ็ค'],
+      ['โออิชิขวด','ขวด/แพ็ค'],
+      ['โออิชิกระป๋อง','กระป๋อง/แพ็ค'],
+      ['เอสขวด','ขวด/แพ็ค'],
+      ['จับใจ','ขวด/แพ็ค']
+
+    ]
+  },
+
+  {
+    categoryKey: 'other',
+    icon: '🧻',
+    color: 'from-amber-500 to-yellow-500',
+
+    items: [
+
+      ['ทิชชู่','ห่อ/แพ็ค'],
+      ['ทิชชู่เปียก','ห่อ/แพ็ค'],
+      ['ยากันยุง','ขวด/แพ็ค']
+
+    ]
+  }
+
+];
+
+function setLanguage(lang){
+
+  currentLanguage = lang;
+
+  document.querySelectorAll('.lang-btn').forEach(btn=>{
+    btn.classList.remove('active');
+  });
+
+  document.getElementById('btn-' + lang).classList.add('active');
+
+  renderPage();
+}
+
+function renderPage(){
+
+  const t = translations[currentLanguage];
+
+  document.getElementById('shop-title').textContent = '🍻 ' + t.title;
+  document.getElementById('daily-check').textContent = t.daily;
+
+  const container = document.getElementById('category-container');
+
+  container.innerHTML = '';
+
+  stockItems.forEach(category => {
+
+    const card = document.createElement('div');
+
+    card.className = `
+      bg-white rounded-2xl shadow-lg overflow-hidden
+    `;
+
+    const title =
+      category.categoryKey === 'alcohol'
+      ? t.alcohol
+      : category.categoryKey === 'nonAlcohol'
+      ? t.nonAlcohol
+      : t.other;
+
+    let rows = '';
+
+    category.items.forEach(item => {
+
+      rows += `
+        <tr class="border-b">
+          <td class="px-3 py-2 text-sm">${item[0]}</td>
+
+          <td class="px-3 py-2">
+            <input
+              type="number"
+              class="w-20 border rounded-lg px-2 py-1 text-center"
+              placeholder="0"
+            >
+          </td>
+
+          <td class="px-3 py-2 text-sm">${item[1]}</td>
+
+          <td class="px-3 py-2">
+            <input
+              type="text"
+              class="w-full border rounded-lg px-2 py-1"
+              placeholder="-"
+            >
+          </td>
+        </tr>
+      `;
+    });
+
+    card.innerHTML = `
+
+      <div class="bg-gradient-to-r ${category.color} p-4 text-white">
+
+        <div class="flex items-center gap-3">
+
+          <div class="text-3xl">
+            ${category.icon}
+          </div>
+
+          <div>
+            <h2 class="text-xl font-bold">
+              ${title}
+            </h2>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="overflow-x-auto">
+
+        <table class="w-full">
+
+          <thead class="bg-gray-100">
+
+            <tr>
+
+              <th class="px-3 py-2 text-left text-sm">
+                รายการ
+              </th>
+
+              <th class="px-3 py-2 text-center text-sm">
+                ${t.quantity}
+              </th>
+
+              <th class="px-3 py-2 text-center text-sm">
+                ${t.unit}
+              </th>
+
+              <th class="px-3 py-2 text-left text-sm">
+                ${t.note}
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            ${rows}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    `;
+
+    container.appendChild(card);
+
+  });
+
+}
+
+renderPage();
+
+</script>
+
+</body>
+</html>
